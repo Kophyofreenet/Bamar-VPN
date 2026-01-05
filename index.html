@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Users Status List</title>
+    <style>
+        :root {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #fff;
+            --text-primary: #333;
+            --text-secondary: #2c3e50;
+            --border-color: #e0e0e0;
+            --table-header-bg: linear-gradient(to bottom, #3498db, #2980b9);
+            --table-row-even: #f8f9fa;
+            --table-row-hover: #e8f4fc;
+            --total-users-bg: linear-gradient(to right, #3498db, #2c3e50);
+            --status-busy: #e74c3c;
+            --status-online: #2ecc71;
+            --status-offline: #95a5a6;
+            --status-full: #9b59b6;
+        }
+
+        .dark-mode {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #f0f0f0;
+            --border-color: #444;
+            --table-header-bg: linear-gradient(to bottom, #2c3e50, #1a2a3e);
+            --table-row-even: #363636;
+            --table-row-hover: #3a4a5c;
+            --total-users-bg: linear-gradient(to right, #2c3e50, #1a2a3e);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            transition: 0.3s;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h1 { text-align: center; color: var(--text-secondary); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        th {
+            background: var(--table-header-bg);
+            color: white;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .online { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+        .offline { background: #95a5a6; }
+        .full { background: #9b59b6; }
+
+        .progress-bar {
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill { height: 100%; transition: 0.5s; }
+
+        .total-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--total-users-bg);
+            color: white;
+            text-align: center;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .flag { width: 25px; margin-right: 10px; vertical-align: middle; }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 50%;
+            border: none;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌐 Server Status Monitor</h1>
+    <p style="text-align: center; color: #7f8c8d;">🖥️ လူသုံးနည်းသော Server ကို ရွေးချယ်အသုံးပြုပါ</p>
+
+    <table id="serverTable">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Server</th>
+                <th>Users</th>
+                <th>Ping</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr><td colspan="4" style="text-align:center;">Loading JSON Data...</td></tr>
+        </tbody>
+    </table>
+
+    <div class="total-box">
+        Total Online Active: <span id="totalOnline">0</span> Users
+    </div>
+    <div id="lastUpdate" style="text-align:right; font-size: 0.8em; color: #888; margin-top: 10px;"></div>
+</div>
+
+<button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+<script>
+    const API_URL = 'https://raw.githubusercontent.com/Kophyofreenet/Online-/refs/heads/main/Onlineapi.json';
+    const LIMIT = 250;
+    const PROXY = 'https://api.allorigins.win/raw?url=';
+
+    async function updateStatus() {
+        try {
+            const response = await fetch(API_URL);
+            const servers = await response.json();
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+
+            const promises = servers.map(async (server) => {
+                let count = 0;
+                let ping = 'Error';
+                const startTime = Date.now();
+                
+                try {
+                    // JSON ထဲက url array ရဲ့ ပထမဆုံး URL ကို ယူသုံးပါတယ်
+                    const targetUrl = Array.isArray(server.url) ? server.url[0] : server.url;
+                    const res = await fetch(PROXY + encodeURIComponent(targetUrl));
+                    if(res.ok) {
+                        const text = await res.text();
+                        count = parseInt(text.trim()) || 0;
+                        if(count > LIMIT) count = LIMIT;
+                        ping = (Date.now() - startTime) + 'ms';
+                    }
+                } catch (e) {
+                    count = 0;
+                    ping = 'Timeout';
+                }
+
+                grandTotal += count;
+                const percent = Math.round((count / LIMIT) * 100);
+                const country = server.name.split('-')[0].toLowerCase();
+                
+                let statusText = 'Online';
+                let statusClass = 'online';
+                if(count >= LIMIT) { statusText = 'Full'; statusClass = 'full'; }
+                if(ping === 'Timeout' || ping === 'Error') { statusText = 'Offline'; statusClass = 'offline'; count = 0; }
+
+                return `
+                    <tr>
+                        <td><span class="status-indicator ${statusClass}"></span>${statusText}</td>
+                        <td><img src="https://flagcdn.com/w40/${country}.png" class="flag"> ${server.name}</td>
+                        <td>
+                            <div style="display:flex; justify-content:space-between; font-size: 0.85em;">
+                                <span>${count}/${LIMIT}</span>
+                                <span>${percent}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:${percent}%; background:${percent > 80 ? '#e74c3c' : '#2ecc71'}"></div>
+                            </div>
+                        </td>
+                        <td>${ping}</td>
+                    </tr>
+                `;
+            });
+
+            const rows = await Promise.all(promises);
+            tbody.innerHTML = rows.join('');
+            document.getElementById('totalOnline').textContent = grandTotal;
+            document.getElementById('lastUpdate').textContent = 'Last update: ' + new Date().toLocaleTimeString();
+
+        } catch (error) {
+            console.error("Fetch error:", error);
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">API ချိတ်ဆက်မှု မအောင်မြင်ပါ။</td></tr>';
+        }
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        const btn = document.querySelector('.theme-toggle');
+        btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 30000); // ၃၀ စက္ကန့်တစ်ခါ အလိုအလျောက် Update လုပ်မည်
+</script>
+
+</body>
+</html>
