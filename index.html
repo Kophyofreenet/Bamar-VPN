@@ -145,6 +145,17 @@
             text-decoration: none;
             display: inline-block;
         }
+
+        /* Logo Animation/Glow */
+        .app-logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -170,9 +181,12 @@
         <div id="serverContainer"></div>
 
         <div class="download-box">
-            <img src="https://via.placeholder.com/80" alt="Logo" style="width: 80px; height: 80px; border-radius: 15px; margin-bottom: 15px; border: 2px solid var(--accent);">
-            <h5 style="font-weight: 700; color: white;">Bamar VPN App</h5>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Bamar VPN မရှိသေးရင် အခုပဲ ဒေါင်းလိုက်ပါ။</p>
+            <img src="1001351573.jpg" alt="Bamar VPN Logo" class="app-logo">
+            
+            <h5 style="font-weight: 700; color: white; margin-bottom: 5px;">Bamar VPN App</h5>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Bamar VPN မရှိသေးရင် အခုပဲ ဒေါင်းလိုက်ပါ။<br>Fast, Secure & Unlimited.
+            </p>
             <a href="https://play.google.com/store/apps/details?id=com.kakhangavpn.net" target="_blank" class="btn-cyber w-100">
                 <i class="bi bi-google-play me-2"></i> Install From Play Store
             </a>
@@ -189,15 +203,14 @@
             { id: 'th-06', name: 'Thailand-06', urls: ['http://103.114.200.252:81/server/online', 'http://103.114.200.252:81/udpserver/online'] }
         ];
 
-        // Layout Initializer နဲ့ Logic တွေကို ဒီအောက်မှာ ဆက်ရေးနိုင်ပါတယ်...
         function initLayout() {
             const container = document.getElementById('serverContainer');
             servers.forEach(srv => {
                 container.innerHTML += `
                     <div class="server-card" id="card-${srv.id}">
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center">
                             <span class="server-name">${srv.name}</span>
-                            <span class="status-badge" id="status-${srv.id}">WAITING</span>
+                            <span class="status-badge" id="status-${srv.id}" style="font-size: 0.7rem; color: var(--text-muted);">WAITING</span>
                         </div>
                         <div class="cyber-progress">
                             <div class="cyber-bar" id="bar-${srv.id}" style="width: 0%; background: var(--accent);"></div>
