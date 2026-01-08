@@ -91,78 +91,122 @@
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             transition: all 0.3s ease;
         }
 
-        .server-info { display: flex; align-items: center; gap: 12px; }
-        
-        .status-indicator {
-            width: 10px; height: 10px;
+        .cyber-progress {
+            height: 6px;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .cyber-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .refresh-circle {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background-color: var(--text-muted);
-        }
-
-        .online { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
-        .offline { background-color: var(--danger); box-shadow: 0 0 10px var(--danger); }
-
-        .server-name {
-            font-weight: 500;
-            font-size: 0.95rem;
-            text-transform: uppercase;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.9rem;
+            color: var(--accent);
+            cursor: pointer;
         }
 
-        .latency { color: var(--accent); font-size: 0.85rem; }
+        .download-box {
+            margin-top: 40px;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px dashed var(--accent);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .btn-cyber {
+            background: var(--accent);
+            color: #000;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            text-decoration: none;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
 
-<div class="dashboard-container">
-    <div class="header-section">
-        <div class="brand-text">BAMAR <span class="brand-highlight">VPN</span></div>
-        <div class="status-badge"><i class="bi bi-shield-lock-fill"></i> SECURE</div>
-    </div>
-
-    <div class="stats-box">
-        <div class="text-muted small mb-2">ACTIVE SERVERS</div>
-        <div class="total-number" id="active-count">0</div>
-    </div>
-
-    <div id="server-list">
-        <div class="server-card">
-            <div class="server-info">
-                <div class="status-indicator online"></div>
-                <div>
-                    <div class="server-name">Singapore Premium 01</div>
-                    <div class="small text-muted">Stable Connection</div>
-                </div>
-            </div>
-            <div class="latency">24ms</div>
+    <div class="dashboard-container">
+        <div class="header-section">
+            <div class="brand-text">BAMAR <span class="brand-highlight">VPN</span></div>
+            <div class="refresh-circle" id="refreshTimer">20</div>
         </div>
 
-        <div class="server-card">
-            <div class="server-info">
-                <div class="status-indicator online"></div>
-                <div>
-                    <div class="server-name">Japan Streaming-X</div>
-                    <div class="small text-muted">High Bandwidth</div>
-                </div>
+        <div class="stats-box">
+            <div style="color: var(--text-muted); font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 10px;">ONLINE USERS</div>
+            <div class="total-number" id="totalOnlineCount">0</div>
+            <div style="font-size: 0.8rem; color: var(--success); margin-top: 5px;" id="systemStatus">
+                <i class="bi bi-activity"></i> CHECKING SYSTEM...
             </div>
-            <div class="latency">65ms</div>
+        </div>
+
+        <div style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">
+            <i class="bi bi-hdd-network me-2"></i>Server Nodes
+        </div>
+
+        <div id="serverContainer"></div>
+
+        <div class="download-box">
+            <img src="https://via.placeholder.com/80" alt="Logo" style="width: 80px; height: 80px; border-radius: 15px; margin-bottom: 15px; border: 2px solid var(--accent);">
+            <h5 style="font-weight: 700; color: white;">Bamar VPN App</h5>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Bamar VPN မရှိသေးရင် အခုပဲ ဒေါင်းလိုက်ပါ။</p>
+            <a href="https://play.google.com/store/apps/details?id=com.kakhangavpn.net" target="_blank" class="btn-cyber w-100">
+                <i class="bi bi-google-play me-2"></i> Install From Play Store
+            </a>
         </div>
     </div>
-</div>
 
-<script>
-    // ဤနေရာတွင် သင့် Server အရေအတွက်ကို လက်ရှိအချိန်ပြောင်းပေးနိုင်သည်
-    const servers = document.querySelectorAll('.online').length;
-    document.getElementById('active-count').innerText = servers;
+    <script>
+        const servers = [
+            { id: 'th-01', name: 'Thailand-01', urls: ['http://103.114.200.130:81/server/online', 'http://103.114.200.130:81/udpserver/online'] },
+            { id: 'th-02', name: 'Thailand-02', urls: ['http://103.114.200.251:81/server/online', 'http://103.114.200.251:81/udpserver/online'] },
+            { id: 'th-03', name: 'Thailand-03', urls: ['http://103.114.200.252:81/server/online', 'http://103.114.200.252:81/udpserver/online'] },
+            { id: 'th-04', name: 'Thailand-04', urls: ['http://103.114.200.130:81/server/online', 'http://103.114.200.130:81/udpserver/online'] },
+            { id: 'th-05', name: 'Thailand-05', urls: ['http://103.114.200.251:81/server/online', 'http://103.114.200.251:81/udpserver/online'] },
+            { id: 'th-06', name: 'Thailand-06', urls: ['http://103.114.200.252:81/server/online', 'http://103.114.200.252:81/udpserver/online'] }
+        ];
 
-    // Server Status ကို Real-time စစ်ဆေးချင်လျှင် API ချိတ်ဆက်ရန်လိုအပ်သည်
-</script>
-
+        // Layout Initializer နဲ့ Logic တွေကို ဒီအောက်မှာ ဆက်ရေးနိုင်ပါတယ်...
+        function initLayout() {
+            const container = document.getElementById('serverContainer');
+            servers.forEach(srv => {
+                container.innerHTML += `
+                    <div class="server-card" id="card-${srv.id}">
+                        <div class="d-flex justify-content-between">
+                            <span class="server-name">${srv.name}</span>
+                            <span class="status-badge" id="status-${srv.id}">WAITING</span>
+                        </div>
+                        <div class="cyber-progress">
+                            <div class="cyber-bar" id="bar-${srv.id}" style="width: 0%; background: var(--accent);"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        initLayout();
+    </script>
 </body>
 </html>
