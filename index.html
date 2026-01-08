@@ -12,8 +12,8 @@
         :root {
             --bg-color: #050505;
             --card-bg: #111111;
-            --accent: #00f0ff; /* Neon Cyan */
-            --success: #00ff9d; /* Neon Green */
+            --accent: #00f0ff; 
+            --success: #00ff9d; 
             --warning: #ffeb3b;
             --danger: #ff0055;
             --text-main: #ffffff;
@@ -37,7 +37,6 @@
             max-width: 480px;
         }
 
-        /* Header Style */
         .header-section {
             display: flex;
             justify-content: space-between;
@@ -59,7 +58,6 @@
             text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
         }
 
-        /* Stats Box */
         .stats-box {
             background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
             border: 1px solid var(--border);
@@ -87,162 +85,84 @@
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
         }
 
-        .stats-label {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-top: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Server List */
         .server-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 12px;
-            transition: all 0.3s ease;
-            position: relative;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.3s ease;
         }
 
-        .server-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-2px);
+        .server-info { display: flex; align-items: center; gap: 12px; }
+        
+        .status-indicator {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
         }
 
-        .server-card.active-server {
-            border-color: rgba(0, 255, 157, 0.3);
-            box-shadow: 0 4px 20px rgba(0, 255, 157, 0.1);
-        }
-
-        .server-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .flag-icon {
-            font-size: 1.2rem;
-        }
+        .online { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
+        .offline { background-color: var(--danger); box-shadow: 0 0 10px var(--danger); }
 
         .server-name {
             font-weight: 500;
             font-size: 0.95rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .ping-status {
             font-family: 'Chakra Petch', sans-serif;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: var(--border);
-            box-shadow: 0 0 5px currentColor;
-        }
-
-        .status-online { color: var(--success); background-color: var(--success); }
-        .status-busy { color: var(--warning); background-color: var(--warning); }
-        .status-offline { color: var(--danger); background-color: var(--danger); }
-
-        .btn-connect {
-            width: 100%;
-            margin-top: 20px;
-            padding: 15px;
-            background: var(--accent);
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #000;
-            transition: 0.3s;
-        }
-
-        .btn-connect:hover {
-            box-shadow: 0 0 20px var(--accent);
-            background: #fff;
-        }
-
+        .latency { color: var(--accent); font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-container">
-        <div class="header-section">
-            <div class="brand-text">Bamar <span class="brand-highlight">VPN</span></div>
-            <div class="text-end">
-                <i class="bi bi-shield-check" style="color: var(--success); font-size: 1.2rem;"></i>
-            </div>
-        </div>
-
-        <div class="stats-box">
-            <div class="total-number">08</div>
-            <div class="stats-label">Active Servers</div>
-        </div>
-
-        <div class="server-list">
-            
-            <div class="server-card active-server">
-                <div class="server-info">
-                    <span class="flag-icon">🇸🇬</span>
-                    <span class="server-name">Singapore #1</span>
-                </div>
-                <div class="ping-status" style="color: var(--success);">
-                    <div class="status-dot status-online"></div>
-                    45ms
-                </div>
-            </div>
-
-            <div class="server-card">
-                <div class="server-info">
-                    <span class="flag-icon">🇸🇬</span>
-                    <span class="server-name">Singapore #2</span>
-                </div>
-                <div class="ping-status" style="color: var(--success);">
-                    <div class="status-dot status-online"></div>
-                    52ms
-                </div>
-            </div>
-
-            <div class="server-card">
-                <div class="server-info">
-                    <span class="flag-icon">🇯🇵</span>
-                    <span class="server-name">Japan Turbo</span>
-                </div>
-                <div class="ping-status" style="color: var(--warning);">
-                    <div class="status-dot status-busy"></div>
-                    120ms
-                </div>
-            </div>
-
-            <div class="server-card" style="opacity: 0.6;">
-                <div class="server-info">
-                    <span class="flag-icon">🇺🇸</span>
-                    <span class="server-name">USA East</span>
-                </div>
-                <div class="ping-status" style="color: var(--danger);">
-                    <div class="status-dot status-offline"></div>
-                    OFF
-                </div>
-            </div>
-
-        </div>
-
-        <button class="btn-connect">Quick Connect</button>
+<div class="dashboard-container">
+    <div class="header-section">
+        <div class="brand-text">BAMAR <span class="brand-highlight">VPN</span></div>
+        <div class="status-badge"><i class="bi bi-shield-lock-fill"></i> SECURE</div>
     </div>
+
+    <div class="stats-box">
+        <div class="text-muted small mb-2">ACTIVE SERVERS</div>
+        <div class="total-number" id="active-count">0</div>
+    </div>
+
+    <div id="server-list">
+        <div class="server-card">
+            <div class="server-info">
+                <div class="status-indicator online"></div>
+                <div>
+                    <div class="server-name">Singapore Premium 01</div>
+                    <div class="small text-muted">Stable Connection</div>
+                </div>
+            </div>
+            <div class="latency">24ms</div>
+        </div>
+
+        <div class="server-card">
+            <div class="server-info">
+                <div class="status-indicator online"></div>
+                <div>
+                    <div class="server-name">Japan Streaming-X</div>
+                    <div class="small text-muted">High Bandwidth</div>
+                </div>
+            </div>
+            <div class="latency">65ms</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ဤနေရာတွင် သင့် Server အရေအတွက်ကို လက်ရှိအချိန်ပြောင်းပေးနိုင်သည်
+    const servers = document.querySelectorAll('.online').length;
+    document.getElementById('active-count').innerText = servers;
+
+    // Server Status ကို Real-time စစ်ဆေးချင်လျှင် API ချိတ်ဆက်ရန်လိုအပ်သည်
+</script>
 
 </body>
 </html>
-
