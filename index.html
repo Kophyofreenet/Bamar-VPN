@@ -1,9 +1,12 @@
+<?php
+header('Content-Type: text/html; charset=UTF-8');
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bamar VPN | Cyber Status</title>
+    <title>BAMAR VPN | ONLINE Status</title>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -12,8 +15,8 @@
         :root {
             --bg-color: #050505;
             --card-bg: #111111;
-            --accent: #00f0ff; 
-            --success: #00ff9d; 
+            --accent: #00f0ff; /* Neon Cyan */
+            --success: #00ff9d; /* Neon Green */
             --warning: #ffeb3b;
             --danger: #ff0055;
             --text-main: #ffffff;
@@ -37,6 +40,7 @@
             max-width: 480px;
         }
 
+        /* Header Style */
         .header-section {
             display: flex;
             justify-content: space-between;
@@ -58,6 +62,7 @@
             text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
         }
 
+        /* Stats Box */
         .stats-box {
             background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
             border: 1px solid var(--border);
@@ -83,8 +88,10 @@
             color: var(--text-main);
             line-height: 1;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            transition: all 0.5s ease;
         }
 
+        /* Server List */
         .server-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -92,8 +99,22 @@
             padding: 16px;
             margin-bottom: 12px;
             transition: all 0.3s ease;
+            position: relative;
         }
 
+        .server-card.active-server {
+            border-color: rgba(0, 255, 157, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .server-name {
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Progress Bar Custom */
         .cyber-progress {
             height: 6px;
             background: #222;
@@ -105,7 +126,24 @@
         .cyber-bar {
             height: 100%;
             border-radius: 4px;
+            box-shadow: 0 0 10px currentColor;
             transition: width 0.5s ease;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+        }
+
+        .ping-indicator {
+            font-family: 'Chakra Petch', sans-serif;
+            color: var(--text-muted);
+            font-size: 0.8rem;
         }
 
         .refresh-circle {
@@ -117,11 +155,23 @@
             align-items: center;
             justify-content: center;
             font-family: 'Chakra Petch', sans-serif;
-            font-size: 0.9rem;
+            font-size: 1.2rem;
             color: var(--accent);
             cursor: pointer;
+            transition: all 0.3s;
         }
 
+        .refresh-circle:hover, .refresh-circle.loading {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--accent);
+        }
+        
+        .spin-anim {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* New Download Section Style */
         .download-box {
             margin-top: 40px;
             background: rgba(0, 240, 255, 0.05);
@@ -142,20 +192,17 @@
             border-radius: 8px;
             transition: all 0.3s;
             box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
-            text-decoration: none;
-            display: inline-block;
+        }
+        
+        .btn-cyber:hover {
+            background: #fff;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
+            transform: translateY(-2px);
         }
 
-        /* Logo Animation/Glow */
-        .app-logo {
-            width: 90px;
-            height: 90px;
-            border-radius: 20px;
-            margin-bottom: 15px;
-            border: 2px solid var(--accent);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
-            object-fit: cover;
-        }
+        .skeleton-text { height: 10px; background: #222; border-radius: 4px; margin-bottom: 5px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
     </style>
 </head>
 <body>
@@ -163,7 +210,9 @@
     <div class="dashboard-container">
         <div class="header-section">
             <div class="brand-text">BAMAR <span class="brand-highlight">VPN</span></div>
-            <div class="refresh-circle" id="refreshTimer">20</div>
+            <div class="refresh-circle" id="refreshBtn" onclick="manualRefresh()">
+                <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+            </div>
         </div>
 
         <div class="stats-box">
@@ -181,45 +230,208 @@
         <div id="serverContainer"></div>
 
         <div class="download-box">
-            <img src="IMG_20260106_142932_888.jpg" alt="Bamar VPN Logo" class="app-logo">
+            <img src="https://raw.githubusercontent.com/Kophyofreenet/Bamar-VPN/refs/heads/main/IMG_20260106_142932_888.jpg" 
+                 alt="Bamar VPN Logo" 
+                 style="width: 80px; height: 80px; border-radius: 15px; margin: 0 auto 15px auto; display: block; border: 2px solid var(--accent); box-shadow: 0 0 15px var(--accent);">
             
-            <h5 style="font-weight: 700; color: white; margin-bottom: 5px;">Bamar VPN App</h5>
+            <h5 style="font-weight: 700; color: white; margin-bottom: 10px;">BAMAR VPN</h5>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                Bamar VPN မရှိသေးရင် အခုပဲ ဒေါင်းလိုက်ပါ။<br>Fast, Secure & Unlimited.
+                BAMAR VPN မရှိသေးရင် အခုပဲ ဒေါင်းလိုက်ပါ။<br>Fast, Secure & Unlimited.
             </p>
-            <a href="https://play.google.com/store/apps/details?id=com.kakhangavpn.net" target="_blank" class="btn-cyber w-100">
+            <a href="https://play.google.com/store/apps/details?id=com.skphvpn.mm&hl=en" target="_blank" class="btn btn-cyber w-100">
                 <i class="bi bi-google-play me-2"></i> Install From Play Store
             </a>
         </div>
-    </div>
 
+        <div style="text-align: center; margin-top: 30px; font-size: 0.7rem; color: #444;">
+            <span id="lastUpdated">CONNECTING...</span><br>
+            BAMAR NETWORK INFRASTRUCTURE
+        </div>
+    </div>
+    
     <script>
         const servers = [
-            { id: 'th-01', name: 'Thailand-01', urls: ['http://bamar.kophyoe.online:81/server/online', 'http://bamar.kophyoe.online:81/udpserver/online'] },
-            { id: 'th-02', name: 'Thailand-02', urls: ['http://mmt1.kophyoe.online:81/server/online', 'http://mmt1.kophyoe.online:81/udpserver/online'] },
-            { id: 'th-03', name: 'Thailand-03', urls: ['http://mmt2.kophyoe.online:81/server/online', 'http://mmt2.kophyoe.online:81/udpserver/online'] },
-            { id: 'th-04', name: 'Thailand-04', urls: ['http://bamar.kophyoe.online:81/server/online', 'http://bamar.kophyoe.online:81/udpserver/online'] },
-            { id: 'th-05', name: 'Thailand-05', urls: ['http://mmt1.kophyoe.online:81/server/online', 'http://mmt1.kophyoe.online:81/udpserver/online'] },
-            { id: 'th-06', name: 'Thailand-06', urls: ['http://mmt2.kophyoe.online:81/server/online', 'http://mmt2.kophyoe.online:81/udpserver/online'] }
+           { id: 'th-01', name: 'Thailand-01 SSH OVPN SSL', urls: [''] },
+            { id: 'th-02', name: 'Thailand-01 UDP', urls: [''] },
         ];
+
+
+        const LIMIT = 250;
+        const proxies = [
+            url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            url => `https://corsproxy.io/?${encodeURIComponent(url)}`
+        ];
+
+        // STORE STATE (To prevent flashing 0)
+        let serverValues = {};
+        
+        // Init state with 0 for all servers
+        servers.forEach(s => serverValues[s.id] = 0);
 
         function initLayout() {
             const container = document.getElementById('serverContainer');
-            servers.forEach(srv => {
-                container.innerHTML += `
-                    <div class="server-card" id="card-${srv.id}">
+            if (container.children.length === 0) {
+                servers.forEach(srv => {
+                    const el = document.createElement('div');
+                    el.id = srv.id;
+                    el.className = 'server-card';
+                    el.innerHTML = `
                         <div class="d-flex justify-content-between align-items-center">
+                            <span class="server-name" style="color: #444">${srv.name}</span>
+                            <span class="status-badge" style="color: #444">...</span>
+                        </div>
+                        <div class="skeleton-text" style="width: 100%; margin-top: 15px;"></div>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+        }
+
+        async function apiFetch(url) {
+            for (let proxy of proxies) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000); 
+
+                    const r = await fetch(proxy(url), { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    
+                    if(r.ok) {
+                        const text = await r.text();
+                        const num = parseInt(text.trim());
+                        if (!isNaN(num)) return num;
+                    }
+                } catch(e) { }
+            }
+            return null;
+        }
+
+        // Calculates Total based on SAVED values
+        function recalculateTotal() {
+            let total = 0;
+            let activeCount = 0;
+            
+            Object.values(serverValues).forEach(val => {
+                total += val;
+                if(val > 0) activeCount++;
+            });
+
+            // Update Total UI
+            const totalEl = document.getElementById('totalOnlineCount');
+            totalEl.innerText = total;
+            totalEl.style.color = total > 0 ? 'var(--text-main)' : '#666';
+
+            // Update System Status
+            const statusEl = document.getElementById('systemStatus');
+            if(activeCount > 0) {
+                statusEl.innerHTML = '<i class="bi bi-activity"></i> SYSTEM OPTIMAL';
+                statusEl.style.color = 'var(--success)';
+            } else {
+                statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ALL SERVERS OFFLINE';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function processServer(srv) {
+            const results = await Promise.all(srv.urls.map(u => apiFetch(u)));
+            
+            let count = 0;
+            let active = false;
+
+            results.forEach(val => {
+                if (val !== null) { count += val; active = true; }
+            });
+
+            if (count > LIMIT) count = LIMIT;
+
+            // SAVE TO STATE (Crucial Step)
+            serverValues[srv.id] = count;
+            
+            // Trigger UI Recalculation Immediately
+            recalculateTotal();
+
+            // Calculate Card Percent
+            const percent = Math.round((count / LIMIT) * 100);
+            
+            // Color Logic
+            let color = 'var(--success)';
+            let statusText = 'ONLINE';
+            let statusColor = 'var(--success)';
+            
+            if (percent > 90) { 
+                color = 'var(--danger)'; statusText = 'FULL'; statusColor = 'var(--danger)';
+            } else if (percent > 70) { 
+                color = 'var(--warning)'; statusText = 'BUSY'; statusColor = 'var(--warning)';
+            }
+            
+            if (!active) {
+                // If fetch failed completely, we keep it as 0
+                color = '#333'; statusText = 'OFFLINE'; statusColor = '#666';
+            }
+
+            // Update Card UI
+            const el = document.getElementById(srv.id);
+            if (el) {
+                if(active) el.classList.add('active-server');
+                else el.classList.remove('active-server');
+
+                el.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-hdd-fill me-2" style="color: ${active ? color : '#333'}"></i>
                             <span class="server-name">${srv.name}</span>
-                            <span class="status-badge" id="status-${srv.id}" style="font-size: 0.7rem; color: var(--text-muted);">WAITING</span>
                         </div>
-                        <div class="cyber-progress">
-                            <div class="cyber-bar" id="bar-${srv.id}" style="width: 0%; background: var(--accent);"></div>
-                        </div>
+                        <span class="status-badge" style="color: ${statusColor}; border: 1px solid ${statusColor}40">
+                            ${statusText}
+                        </span>
+                    </div>
+                    <div class="cyber-progress">
+                        <div class="cyber-bar" style="width: ${percent}%; background-color: ${color}; box-shadow: 0 0 10px ${color}"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 align-items-center">
+                        <span class="ping-indicator"><i class="bi bi-people-fill"></i> ${count}/${LIMIT}</span>
+                        <span style="font-family: 'Chakra Petch'; font-weight: bold; color: ${color}">${percent}%</span>
                     </div>
                 `;
-            });
+            }
         }
-        initLayout();
+
+        let isRefreshing = false;
+
+        async function refresh() {
+            if(isRefreshing) return;
+            isRefreshing = true;
+            
+            // Start Loading UI (But do NOT reset Total to 0)
+            document.getElementById('refreshBtn').classList.add('loading');
+            document.getElementById('refreshIcon').classList.add('spin-anim');
+            
+            // Update Text to indicate refresh
+            const statusEl = document.getElementById('systemStatus');
+            const prevText = statusEl.innerHTML;
+            statusEl.innerHTML = '<i class="bi bi-hourglass-split"></i> UPDATING...';
+
+            initLayout(); 
+            
+            // Fetch All Parallely
+            const tasks = servers.map(srv => processServer(srv));
+            await Promise.all(tasks);
+            
+            // Finished
+            document.getElementById('lastUpdated').innerText = 'LAST SYNC: ' + new Date().toLocaleTimeString().toUpperCase();
+            
+            document.getElementById('refreshBtn').classList.remove('loading');
+            document.getElementById('refreshIcon').classList.remove('spin-anim');
+            isRefreshing = false;
+        }
+
+        function manualRefresh() { refresh(); }
+
+        // Initial Run
+        refresh();
+        // Auto Loop
+        setInterval(refresh, 5000); 
+        
     </script>
 </body>
 </html>
