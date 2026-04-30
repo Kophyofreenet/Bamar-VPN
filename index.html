@@ -1,442 +1,138 @@
 <?php
-header('Content-Type: text/html; charset=UTF-8');
+error_reporting(0);
+
+$lang = $_GET['lang'] ?? 'mm';
+$text = [
+ 'en'=>['title'=>"MoVPN Dashboard",'total'=>"Total Users: ",'best_label'=>"BEST"],
+ 'mm'=>['title'=>"MoVPN ဒက်ရှ်ဘုတ်",'total'=>"အသုံးပြုသူစုစုပေါင်း: ",'best_label'=>"အကောင်းဆုံး"],
+ 'th'=>['title'=>"MoVPN แดชบอร์ด",'total'=>"ผู้ใช้งานทั้งหมด: ",'best_label'=>"ดีที่สุด"]
+];
+if(!isset($text[$lang])) $lang='en';
+
+function getOnline($url){
+    $ctx = stream_context_create(["http"=>["timeout"=>2]]);
+    $data = @file_get_contents($url,false,$ctx);
+    return (is_numeric(trim($data))) ? (int)trim($data) : 0;
+}
+
+$udp_servers = []; $ssh_servers = []; $totalUsers = 0;
+$minUdp = 9999; $minUdpIdx = -1;
+$minSsh = 9999; $minSshIdx = -1;
+
+for($i=1;$i<=10;$i++){
+    $u_val = getOnline("http://auto.free$i.movpn.store/udpserver/online");
+    $s_val = getOnline("http://auto.free$i.movpn.store:81/server/online");
+
+    $udp_servers[] = ["name"=>"UDP Server Free ".str_pad($i,3,"0",STR_PAD_LEFT), "online"=>$u_val, "limit"=>300];
+    $ssh_servers[] = ["name"=>"OVPN Server Free ".str_pad($i,3,"0",STR_PAD_LEFT), "online"=>$s_val, "limit"=>250];
+
+    if($u_val <= $minUdp) { $minUdp = $u_val; $minUdpIdx = $i-1; }
+    if($s_val <= $minSsh) { $minSsh = $s_val; $minSshIdx = $i-1; }
+    $totalUsers += ($u_val + $s_val);
+}
 ?>
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAMAR VPN | ONLINE Status</title>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    :root {
+        --bg-main: #060e1d;
+        --bg-card: #101c31;
+        --udp-color: #00ff88;
+        --ovpn-color: #00d9ff;
+    }
+
+    body { background: var(--bg-main); color: #fff; font-family: sans-serif; margin: 0; padding-bottom: 50px; }
+    .header { text-align: center; padding: 20px; background: #0c1626; border-bottom: 2px solid var(--udp-color); }
     
-    <style>
-        :root {
-            --bg-color: #050505;
-            --card-bg: #111111;
-            --accent: #00f0ff; /* Neon Cyan */
-            --success: #00ff9d; /* Neon Green */
-            --warning: #ffeb3b;
-            --danger: #ff0055;
-            --text-main: #ffffff;
-            --text-muted: #888888;
-            --border: #222222;
-        }
+    .lang-box { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
+    .lang-link { text-decoration: none; color: #fff; font-size: 12px; padding: 6px 14px; background: #1a2a44; border-radius: 20px; }
+    .lang-link.active { background: var(--udp-color); color: #000; font-weight: bold; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    .container { display: flex; flex-wrap: wrap; gap: 15px; padding: 10px; }
+    .side { flex: 1; min-width: 320px; }
+    
+    .head-bar { padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid; }
+    .udp-h { background: rgba(0, 255, 136, 0.1); color: var(--udp-color); border-color: var(--udp-color); }
+    .ovpn-h { background: rgba(0, 217, 255, 0.1); color: var(--ovpn-color); border-color: var(--ovpn-color); }
 
-        .dashboard-container {
-            width: 100%;
-            max-width: 480px;
-        }
+    .grid-box { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
-        /* Header Style */
-        .header-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border);
+    .card { background: var(--bg-card); padding: 12px; border-radius: 10px; border: 1.5px solid #1a2a44; text-align: center; position: relative; }
+    .card-name { font-size: 11px; font-weight: 600; display: block; margin-bottom: 5px; }
+    
+    /* --- အလင်းအားကောင်းသော Animation --- */
+    @keyframes glow-udp {
+        0% { border-color: #1a2a44; box-shadow: none; }
+        50% { 
+            border-color: var(--udp-color); 
+            box-shadow: 0 0 10px var(--udp-color), 0 0 20px rgba(0, 255, 136, 0.3); 
         }
+        100% { border-color: #1a2a44; box-shadow: none; }
+    }
 
-        .brand-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+    @keyframes glow-ovpn {
+        0% { border-color: #1a2a44; box-shadow: none; }
+        50% { 
+            border-color: var(--ovpn-color); 
+            box-shadow: 0 0 10px var(--ovpn-color), 0 0 20px rgba(0, 217, 255, 0.3); 
         }
+        100% { border-color: #1a2a44; box-shadow: none; }
+    }
 
-        .brand-highlight {
-            color: var(--accent);
-            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-        }
+    .udp-card.best { animation: glow-udp 1.5s infinite; z-index: 10; }
+    .ovpn-card.best { animation: glow-ovpn 1.5s infinite; z-index: 10; }
 
-        /* Stats Box */
-        .stats-box {
-            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 30px;
-            position: relative;
-            overflow: hidden;
-        }
+    .bar-bg { height: 4px; background: #081220; border-radius: 5px; margin-top: 8px; overflow: hidden; }
+    .udp-fill { height: 100%; background: var(--udp-color); }
+    .ovpn-fill { height: 100%; background: var(--ovpn-color); }
 
-        .stats-box::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent), transparent);
-        }
-
-        .total-number {
-            font-family: 'Chakra Petch', sans-serif;
-            font-size: 4rem;
-            font-weight: 700;
-            color: var(--text-main);
-            line-height: 1;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-            transition: all 0.5s ease;
-        }
-
-        /* Server List */
-        .server-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .server-card.active-server {
-            border-color: rgba(0, 255, 157, 0.3);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        .server-name {
-            font-weight: 500;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Progress Bar Custom */
-        .cyber-progress {
-            height: 6px;
-            background: #222;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 12px;
-        }
-
-        .cyber-bar {
-            height: 100%;
-            border-radius: 4px;
-            box-shadow: 0 0 10px currentColor;
-            transition: width 0.5s ease;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            font-family: 'Chakra Petch', sans-serif;
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.05);
-            font-weight: 600;
-        }
-
-        .ping-indicator {
-            font-family: 'Chakra Petch', sans-serif;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-        }
-
-        .refresh-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Chakra Petch', sans-serif;
-            font-size: 1.2rem;
-            color: var(--accent);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .refresh-circle:hover, .refresh-circle.loading {
-            background: rgba(0, 240, 255, 0.1);
-            border-color: var(--accent);
-        }
-        
-        .spin-anim {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        /* New Download Section Style */
-        .download-box {
-            margin-top: 40px;
-            background: rgba(0, 240, 255, 0.05);
-            border: 1px dashed var(--accent);
-            border-radius: 16px;
-            padding: 25px;
-            text-align: center;
-        }
-        
-        .btn-cyber {
-            background: var(--accent);
-            color: #000;
-            font-family: 'Chakra Petch', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            transition: all 0.3s;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
-        }
-        
-        .btn-cyber:hover {
-            background: #fff;
-            box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
-            transform: translateY(-2px);
-        }
-
-        .skeleton-text { height: 10px; background: #222; border-radius: 4px; margin-bottom: 5px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-
-    </style>
+    .badge { font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px; text-transform: uppercase; }
+</style>
 </head>
 <body>
 
-    <div class="dashboard-container">
-        <div class="header-section">
-            <div class="brand-text">BAMAR <span class="brand-highlight">VPN</span></div>
-            <div class="refresh-circle" id="refreshBtn" onclick="manualRefresh()">
-                <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+<div class="header">
+    <div class="lang-box">
+        <a href="?lang=en" class="lang-link <?= $lang=='en'?'active':'' ?>">🇺🇸 EN</a>
+        <a href="?lang=mm" class="lang-link <?= $lang=='mm'?'active':'' ?>">🇲🇲 MM</a>
+        <a href="?lang=th" class="lang-link <?= $lang=='th'?'active':'' ?>">🇹🇭 TH</a>
+    </div>
+    <div style="font-size: 18px; font-weight: bold;"><?= $text[$lang]['title'] ?></div>
+    <div style="color: var(--udp-color); font-size: 14px; margin-top: 5px;"><?= $text[$lang]['total'] ?> <b><?= $totalUsers ?></b></div>
+</div>
+
+<div class="container">
+    <div class="side">
+        <div class="head-bar udp-h">( UDP ) SERVERS</div>
+        <div class="grid-box">
+            <?php foreach($udp_servers as $idx => $s): $isBest = ($idx === $minUdpIdx); ?>
+            <div class="card udp-card <?= $isBest?'best':'' ?>">
+                <?php if($isBest): ?><span class="badge" style="color: var(--udp-color);"><?= $text[$lang]['best_label'] ?></span><?php endif; ?>
+                <span class="card-name"><?= $s['name'] ?></span>
+                <div style="font-size:10px; color:#8598a9;"><?= $s['online'] ?>/<?= $s['limit'] ?></div>
+                <div class="bar-bg"><div class="udp-fill" style="width:<?= ($s['online']/$s['limit'])*100 ?>%"></div></div>
             </div>
-        </div>
-
-        <div class="stats-box">
-            <div style="color: var(--text-muted); font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 10px;">ONLINE USERS</div>
-            <div class="total-number" id="totalOnlineCount">0</div>
-            <div style="font-size: 0.8rem; color: var(--success); margin-top: 5px;" id="systemStatus">
-                <i class="bi bi-activity"></i> CHECKING SYSTEM...
-            </div>
-        </div>
-
-        <div style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">
-            <i class="bi bi-hdd-network me-2"></i>Server Nodes
-        </div>
-
-        <div id="serverContainer"></div>
-
-        <div class="download-box">
-            <img src="https://raw.githubusercontent.com/Kophyofreenet/Bamar-VPN/refs/heads/main/IMG_20260106_142932_888.jpg" 
-                 alt="Bamar VPN Logo" 
-                 style="width: 80px; height: 80px; border-radius: 15px; margin: 0 auto 15px auto; display: block; border: 2px solid var(--accent); box-shadow: 0 0 15px var(--accent);">
-            
-            <h5 style="font-weight: 700; color: white; margin-bottom: 10px;">BAMAR VPN</h5>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                BAMAR VPN မရှိသေးရင် အခုပဲ ဒေါင်းလိုက်ပါ။<br>Fast, Secure & Unlimited.
-            </p>
-            <a href="https://play.google.com/store/apps/details?id=com.kakhangavpn.net" target="_blank" class="btn btn-cyber w-100">
-                <i class="bi bi-google-play me-2"></i> Install From Play Store
-            </a>
-        </div>
-
-        <div style="text-align: center; margin-top: 30px; font-size: 0.7rem; color: #444;">
-            <span id="lastUpdated">CONNECTING...</span><br>
-            BAMAR NETWORK INFRASTRUCTURE
+            <?php endforeach; ?>
         </div>
     </div>
-    
-    <script>
-        const servers = [
-    { id: 'th-01', name: 'Thailand-01 SSH OVPN SSL', urls: ['http://bamar.kophyoe.online:81/server/online'] },
-    { id: 'th-02', name: 'Thailand-01 UDP', urls: ['http://bamar.kophyoe.online:81/udpserver/online'] },
-    { id: 'th-03', name: 'Thailand-02 SSH OVPN SSL', urls: ['http://bamar.kophyoe.online:81/server/online'] },
-    { id: 'th-04', name: 'Thailand-02 UDP', urls: ['http://bamar.kophyoe.online:81/udpserver/online'] },
-    { id: 'th-05', name: 'Thailand-03 SSH OVPN SSL', urls: ['http://bamar.kophyoe.online:81/server/online'] },
-    { id: 'th-06', name: 'Thailand-03 UDP', urls: ['http://bamar.kophyoe.online:81/udpserver/online'] }
-];
 
+    <div class="side">
+        <div class="head-bar ovpn-h">( OVPN ) SERVERS</div>
+        <div class="grid-box">
+            <?php foreach($ssh_servers as $idx => $s): $isBest = ($idx === $minSshIdx); ?>
+            <div class="card ovpn-card <?= $isBest?'best':'' ?>">
+                <?php if($isBest): ?><span class="badge" style="color: var(--ovpn-color);"><?= $text[$lang]['best_label'] ?></span><?php endif; ?>
+                <span class="card-name"><?= $s['name'] ?></span>
+                <div style="font-size:10px; color:#8598a9;"><?= $s['online'] ?>/<?= $s['limit'] ?></div>
+                <div class="bar-bg"><div class="ovpn-fill" style="width:<?= ($s['online']/$s['limit'])*100 ?>%"></div></div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
 
-
-        const LIMIT = 250;
-        const proxies = [
-            url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-            url => `https://corsproxy.io/?${encodeURIComponent(url)}`
-        ];
-
-        // STORE STATE (To prevent flashing 0)
-        let serverValues = {};
-        
-        // Init state with 0 for all servers
-        servers.forEach(s => serverValues[s.id] = 0);
-
-        function initLayout() {
-            const container = document.getElementById('serverContainer');
-            if (container.children.length === 0) {
-                servers.forEach(srv => {
-                    const el = document.createElement('div');
-                    el.id = srv.id;
-                    el.className = 'server-card';
-                    el.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="server-name" style="color: #444">${srv.name}</span>
-                            <span class="status-badge" style="color: #444">...</span>
-                        </div>
-                        <div class="skeleton-text" style="width: 100%; margin-top: 15px;"></div>
-                    `;
-                    container.appendChild(el);
-                });
-            }
-        }
-
-        async function apiFetch(url) {
-            for (let proxy of proxies) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 2000); 
-
-                    const r = await fetch(proxy(url), { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    
-                    if(r.ok) {
-                        const text = await r.text();
-                        const num = parseInt(text.trim());
-                        if (!isNaN(num)) return num;
-                    }
-                } catch(e) { }
-            }
-            return null;
-        }
-
-        // Calculates Total based on SAVED values
-        function recalculateTotal() {
-            let total = 0;
-            let activeCount = 0;
-            
-            Object.values(serverValues).forEach(val => {
-                total += val;
-                if(val > 0) activeCount++;
-            });
-
-            // Update Total UI
-            const totalEl = document.getElementById('totalOnlineCount');
-            totalEl.innerText = total;
-            totalEl.style.color = total > 0 ? 'var(--text-main)' : '#666';
-
-            // Update System Status
-            const statusEl = document.getElementById('systemStatus');
-            if(activeCount > 0) {
-                statusEl.innerHTML = '<i class="bi bi-activity"></i> SYSTEM OPTIMAL';
-                statusEl.style.color = 'var(--success)';
-            } else {
-                statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ALL SERVERS OFFLINE';
-                statusEl.style.color = 'var(--danger)';
-            }
-        }
-
-        async function processServer(srv) {
-            const results = await Promise.all(srv.urls.map(u => apiFetch(u)));
-            
-            let count = 0;
-            let active = false;
-
-            results.forEach(val => {
-                if (val !== null) { count += val; active = true; }
-            });
-
-            if (count > LIMIT) count = LIMIT;
-
-            // SAVE TO STATE (Crucial Step)
-            serverValues[srv.id] = count;
-            
-            // Trigger UI Recalculation Immediately
-            recalculateTotal();
-
-            // Calculate Card Percent
-            const percent = Math.round((count / LIMIT) * 100);
-            
-            // Color Logic
-            let color = 'var(--success)';
-            let statusText = 'ONLINE';
-            let statusColor = 'var(--success)';
-            
-            if (percent > 90) { 
-                color = 'var(--danger)'; statusText = 'FULL'; statusColor = 'var(--danger)';
-            } else if (percent > 70) { 
-                color = 'var(--warning)'; statusText = 'BUSY'; statusColor = 'var(--warning)';
-            }
-            
-            if (!active) {
-                // If fetch failed completely, we keep it as 0
-                color = '#333'; statusText = 'OFFLINE'; statusColor = '#666';
-            }
-
-            // Update Card UI
-            const el = document.getElementById(srv.id);
-            if (el) {
-                if(active) el.classList.add('active-server');
-                else el.classList.remove('active-server');
-
-                el.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-hdd-fill me-2" style="color: ${active ? color : '#333'}"></i>
-                            <span class="server-name">${srv.name}</span>
-                        </div>
-                        <span class="status-badge" style="color: ${statusColor}; border: 1px solid ${statusColor}40">
-                            ${statusText}
-                        </span>
-                    </div>
-                    <div class="cyber-progress">
-                        <div class="cyber-bar" style="width: ${percent}%; background-color: ${color}; box-shadow: 0 0 10px ${color}"></div>
-                    </div>
-                    <div class="d-flex justify-content-between mt-2 align-items-center">
-                        <span class="ping-indicator"><i class="bi bi-people-fill"></i> ${count}/${LIMIT}</span>
-                        <span style="font-family: 'Chakra Petch'; font-weight: bold; color: ${color}">${percent}%</span>
-                    </div>
-                `;
-            }
-        }
-
-        let isRefreshing = false;
-
-        async function refresh() {
-            if(isRefreshing) return;
-            isRefreshing = true;
-            
-            // Start Loading UI (But do NOT reset Total to 0)
-            document.getElementById('refreshBtn').classList.add('loading');
-            document.getElementById('refreshIcon').classList.add('spin-anim');
-            
-            // Update Text to indicate refresh
-            const statusEl = document.getElementById('systemStatus');
-            const prevText = statusEl.innerHTML;
-            statusEl.innerHTML = '<i class="bi bi-hourglass-split"></i> UPDATING...';
-
-            initLayout(); 
-            
-            // Fetch All Parallely
-            const tasks = servers.map(srv => processServer(srv));
-            await Promise.all(tasks);
-            
-            // Finished
-            document.getElementById('lastUpdated').innerText = 'LAST SYNC: ' + new Date().toLocaleTimeString().toUpperCase();
-            
-            document.getElementById('refreshBtn').classList.remove('loading');
-            document.getElementById('refreshIcon').classList.remove('spin-anim');
-            isRefreshing = false;
-        }
-
-        function manualRefresh() { refresh(); }
-
-        // Initial Run
-        refresh();
-        // Auto Loop
-        setInterval(refresh, 5000); 
-        
-    </script>
 </body>
 </html>
